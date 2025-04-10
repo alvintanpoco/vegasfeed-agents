@@ -1,7 +1,5 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
-import openai
-import os
 from agents import Agent, Runner
 
 app = FastAPI()
