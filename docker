@@ -1,6 +1,6 @@
 # agents-backend/Dockerfile
 
-FROM python:3.11-slim
+FROM python:3.11.8-slim-bookworm
 
 # Set working directory
 WORKDIR /app

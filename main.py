@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse
 from agents import Agent, Runner
+from fastapi.responses import JSONResponse
+
 
 app = FastAPI()
 
@@ -11,30 +13,19 @@ agent = Agent(
 
 @app.post("/orchestrate")
 async def orchestrate(request: Request):
-    try:
-        data = await request.json()
-        messages = data.get("messages", [])
+    data = await request.json()
 
-        if not isinstance(messages, list) or len(messages) == 0:
-            return JSONResponse(content={"error": "No messages array provided"}, status_code=400)
+    # Accepts either format
+    if "messages" in data and isinstance(data["messages"], list):
+        message = data["messages"][-1]["content"]
+    elif "message" in data:
+        message = data["message"]
+    else:
+        return JSONResponse(content={"error": "No message provided"}, status_code=400)
 
-        # Log the raw payload for debugging
-        print("📩 Received messages:", messages)
+    result = await Runner.run(agent, message)
 
-        last_message = messages[-1]
-        message = last_message.get("content") if isinstance(last_message, dict) else None
+    async def streamer():
+        yield result.final_output
 
-        if not message:
-            return JSONResponse(content={"error": "No message provided"}, status_code=400)
-
-        # Run the agent
-        result = await Runner.run(agent, message)
-
-        async def streamer():
-            yield result.final_output
-
-        return StreamingResponse(streamer(), media_type="text/plain")
-
-    except Exception as e:
-        print("❌ Error in /orchestrate:", str(e))
-        return JSONResponse(content={"error": "Internal server error", "details": str(e)}, status_code=500)
+    return StreamingResponse(streamer(), media_type="text/plain")
