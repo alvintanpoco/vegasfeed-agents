@@ -4,6 +4,7 @@ from agents import Agent, Runner
 
 app = FastAPI()
 
+
 agent = Agent(
     name="Vegas Concierge",
     instructions="You're a Vegas show guide. Recommend fun shows based on age and preferences.",
@@ -12,7 +13,12 @@ agent = Agent(
 @app.post("/orchestrate")
 async def orchestrate(request: Request):
     data = await request.json()
-    message = data.get("message")
+    messages = data.get("messages", [])
+    if not messages or not isinstance(messages, list):
+        return {"error": "No messages array provided"}
+
+    message = messages[-1]["content"] if messages else None
+
 
     if not message:
         return {"error": "No message provided"}
