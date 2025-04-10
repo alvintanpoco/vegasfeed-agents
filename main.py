@@ -1,24 +1,27 @@
-from dotenv import load_dotenv; load_dotenv()
-
-# agents-backend/main.py
-
 from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
+import openai
+import os
 from agents import Agent, Runner
-import asyncio
 
 app = FastAPI()
 
-# Define your orchestrator agent
-orchestrator_agent = Agent(
-    name="Orchestrator Agent",
-    instructions="You are a Vegas entertainment expert. Provide recommendations, answer questions, and reason intelligently about the user's needs.",
+agent = Agent(
+    name="Vegas Concierge",
+    instructions="You're a Vegas show guide. Recommend fun shows based on age and preferences.",
 )
 
 @app.post("/orchestrate")
 async def orchestrate(request: Request):
-    body = await request.json()
-    message = body.get("message", "")
+    data = await request.json()
+    message = data.get("message")
 
-    result = await Runner.run(orchestrator_agent, input=message)
+    if not message:
+        return {"error": "No message provided"}
 
-    return {"reply": result.final_output}
+    result = await Runner.run(agent, message)
+    
+    async def streamer():
+        yield result.final_output
+
+    return StreamingResponse(streamer(), media_type="text/plain")
