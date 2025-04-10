@@ -44,10 +44,11 @@ async def orchestrate(request: Request):
 
         print("[Message Parsed]", message)  # Debug
         result = await Runner.run(agent, message)
-        print("[Agent Result]", result.final_output)  # Debug
 
         async def streamer():
-            yield result.final_output
+            async for chunk in result.stream:
+                print("[Streaming Chunk]", chunk)
+                yield chunk
 
         return vercel_format_stream(streamer())
 
